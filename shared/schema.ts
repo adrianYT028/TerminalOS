@@ -1,57 +1,66 @@
 import { z } from "zod";
+import { pgTable, text, boolean, timestamp, uuid } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
 
-// Task schema
-export const taskSchema = z.object({
-  id: z.string(),
-  description: z.string().min(1),
-  completed: z.boolean().default(false),
-  priority: z.enum(['high', 'medium', 'low']).default('medium'),
-  createdAt: z.string(),
-  completedAt: z.string().optional(),
+// Tasks table
+export const tasks = pgTable('tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  description: text('description').notNull(),
+  completed: boolean('completed').default(false).notNull(),
+  priority: text('priority', { enum: ['high', 'medium', 'low'] }).default('medium').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
 });
 
-export const insertTaskSchema = taskSchema.omit({ id: true, createdAt: true });
+export const insertTaskSchema = createInsertSchema(tasks);
+export const taskSchema = createInsertSchema(tasks).required();
 
-export type Task = z.infer<typeof taskSchema>;
-export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = typeof tasks.$inferInsert;
 
-// Mood schema
-export const moodSchema = z.object({
-  id: z.string(),
-  mood: z.enum(['happy', 'neutral', 'sad', 'excited', 'tired', 'stressed']),
-  note: z.string().optional(),
-  timestamp: z.string(),
+// Moods table
+export const moods = pgTable('moods', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mood: text('mood', { enum: ['happy', 'neutral', 'sad', 'excited', 'tired', 'stressed'] }).notNull(),
+  note: text('note'),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
 });
 
-export const insertMoodSchema = moodSchema.omit({ id: true, timestamp: true });
+export const insertMoodSchema = createInsertSchema(moods);
+export const moodSchema = createInsertSchema(moods).required();
 
-export type Mood = z.infer<typeof moodSchema>;
-export type InsertMood = z.infer<typeof insertMoodSchema>;
+export type Mood = typeof moods.$inferSelect;
+export type InsertMood = typeof moods.$inferInsert;
 
-// Reflection schema
-export const reflectionSchema = z.object({
-  id: z.string(),
-  title: z.string().optional(),
-  content: z.string().min(1),
-  timestamp: z.string(),
+// Reflections table
+export const reflections = pgTable('reflections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title'),
+  content: text('content').notNull(),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
 });
 
-export const insertReflectionSchema = reflectionSchema.omit({ id: true, timestamp: true });
+export const insertReflectionSchema = createInsertSchema(reflections);
+export const reflectionSchema = createInsertSchema(reflections).required();
 
-export type Reflection = z.infer<typeof reflectionSchema>;
-export type InsertReflection = z.infer<typeof insertReflectionSchema>;
+export type Reflection = typeof reflections.$inferSelect;
+export type InsertReflection = typeof reflections.$inferInsert;
 
-// Command history schema
-export const commandHistorySchema = z.object({
-  id: z.string(),
-  command: z.string(),
-  timestamp: z.string(),
-  output: z.string().optional(),
+// Command history table
+export const commandHistory = pgTable('command_history', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  command: text('command').notNull(),
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  output: text('output'),
 });
 
-export type CommandHistory = z.infer<typeof commandHistorySchema>;
+export const insertCommandHistorySchema = createInsertSchema(commandHistory);
+export const commandHistorySchema = createInsertSchema(commandHistory).required();
 
-// System stats schema
+export type CommandHistory = typeof commandHistory.$inferSelect;
+export type InsertCommandHistory = typeof commandHistory.$inferInsert;
+
+// System stats (keeping as Zod schema since it's computed, not stored)
 export const systemStatsSchema = z.object({
   tasksCompletedToday: z.number().default(0),
   pendingTasks: z.number().default(0),

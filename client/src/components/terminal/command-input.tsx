@@ -1,7 +1,7 @@
 import { useState, KeyboardEvent, useEffect, useRef } from 'react';
 
 interface CommandInputProps {
-  onExecuteCommand: (command: string) => void;
+  onExecuteCommand: (command: string) => Promise<void>;
   onInputChange: (value: string) => void;
   onHistoryNavigate: (direction: 'up' | 'down') => string | null;
   onResetHistory: () => void;
@@ -27,10 +27,10 @@ export function CommandInput({
     }
   }, []);
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       if (value.trim()) {
-        onExecuteCommand(value.trim());
+        await onExecuteCommand(value.trim());
         setValue('');
         onResetHistory();
         setShowSuggestions(false);

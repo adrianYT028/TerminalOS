@@ -4,7 +4,7 @@ import { executeCommand, CommandContext, AVAILABLE_COMMANDS } from '@/utils/comm
 export function useCommandParser(context: CommandContext) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  const parseCommand = useCallback((command: string) => {
+  const parseCommand = useCallback(async (command: string) => {
     const sanitized = command.trim();
     if (!sanitized) return null;
 
@@ -12,7 +12,7 @@ export function useCommandParser(context: CommandContext) {
     context.setHistory(prev => [...prev, sanitized]);
 
     // Execute command
-    return executeCommand(sanitized, context);
+    return await executeCommand(sanitized, context);
   }, [context]);
 
   const getSuggestions = useCallback((input: string) => {

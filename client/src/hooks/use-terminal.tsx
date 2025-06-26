@@ -3,6 +3,7 @@ import { useLocalStorage } from './use-local-storage';
 import { useCommandParser } from './use-command-parser';
 import { Task, Mood, Reflection } from '@shared/schema';
 import { formatUptime, getCurrentTime } from '@/utils/terminal-formatter';
+import { useQuery } from '@tanstack/react-query';
 
 export interface TerminalEntry {
   id: string;
@@ -13,9 +14,6 @@ export interface TerminalEntry {
 }
 
 export function useTerminal() {
-  const [tasks, setTasks] = useLocalStorage<Task[]>('lifeos-tasks', []);
-  const [moods, setMoods] = useLocalStorage<Mood[]>('lifeos-moods', []);
-  const [reflections, setReflections] = useLocalStorage<Reflection[]>('lifeos-reflections', []);
   const [commandHistory, setCommandHistory] = useLocalStorage<string[]>('lifeos-history', []);
   const [terminalHistory, setTerminalHistory] = useState<TerminalEntry[]>([]);
   const [currentTime, setCurrentTime] = useState(getCurrentTime());
@@ -24,14 +22,48 @@ export function useTerminal() {
 
   const terminalRef = useRef<HTMLDivElement>(null);
 
+  // Fetch data from database
+  const { data: tasks = [], refetch: refetchTasks } = useQuery({
+    queryKey: ['/api/tasks'],
+    queryFn: async () => {
+      const response = await fetch('/api/tasks');
+      if (!response.ok) throw new Error('Failed to fetch tasks');
+      return response.json() as Promise<Task[]>;
+    }
+  });
+
+  const { data: moods = [], refetch: refetchMoods } = useQuery({
+    queryKey: ['/api/moods'],
+    queryFn: async () => {
+      const response = await fetch('/api/moods');
+      if (!response.ok) throw new Error('Failed to fetch moods');
+      return response.json() as Promise<Mood[]>;
+    }
+  });
+
+  const { data: reflections = [], refetch: refetchReflections } = useQuery({
+    queryKey: ['/api/reflections'],
+    queryFn: async () => {
+      const response = await fetch('/api/reflections');
+      if (!response.ok) throw new Error('Failed to fetch reflections');
+      return response.json() as Promise<Reflection[]>;
+    }
+  });
+
+  const refreshData = async () => {
+    await Promise.all([
+      refetchTasks(),
+      refetchMoods(),
+      refetchReflections()
+    ]);
+  };
+
   const context = {
     tasks,
     moods,
     reflections,
     history: commandHistory,
-    setTasks,
-    setMoods,
-    setReflections,
+    refreshData,
     setHistory: setCommandHistory
   };
 
@@ -53,8 +85,8 @@ export function useTerminal() {
     }
   }, [terminalHistory]);
 
-  const executeCommand = (command: string) => {
-    const result = parseCommand(command);
+  const executeCommand = async (command: string) => {
+    const result = await parseCommand(command);
     
     if (result?.clear) {
       setTerminalHistory([]);

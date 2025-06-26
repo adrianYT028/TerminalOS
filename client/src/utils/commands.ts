@@ -1,13 +1,12 @@
 import { Task, Mood, Reflection, SystemStats } from '@shared/schema';
+import { apiRequest } from '@/lib/queryClient';
 
 export interface CommandContext {
   tasks: Task[];
   moods: Mood[];
   reflections: Reflection[];
   history: string[];
-  setTasks: (tasks: Task[] | ((prev: Task[]) => Task[])) => void;
-  setMoods: (moods: Mood[] | ((prev: Mood[]) => Mood[])) => void;
-  setReflections: (reflections: Reflection[] | ((prev: Reflection[]) => Reflection[])) => void;
+  refreshData: () => Promise<void>;
   setHistory: (history: string[] | ((prev: string[]) => string[])) => void;
 }
 
@@ -16,6 +15,8 @@ export interface CommandResult {
   success: boolean;
   clear?: boolean;
 }
+
+export interface AsyncCommandResult extends Promise<CommandResult> {}
 
 const MOOD_EMOJIS = {
   happy: '😊',
@@ -39,7 +40,7 @@ export const AVAILABLE_COMMANDS = [
   'status'
 ];
 
-export function executeCommand(command: string, context: CommandContext): CommandResult {
+export async function executeCommand(command: string, context: CommandContext): Promise<CommandResult> {
   const parts = command.trim().split(' ');
   const cmd = parts[0].toLowerCase();
   const args = parts.slice(1);
@@ -49,19 +50,19 @@ export function executeCommand(command: string, context: CommandContext): Comman
       return handleHelp();
     
     case 'add-task':
-      return handleAddTask(args.join(' '), context);
+      return await handleAddTask(args.join(' '), context);
     
     case 'list-tasks':
       return handleListTasks(context);
     
     case 'complete-task':
-      return handleCompleteTask(args[0], context);
+      return await handleCompleteTask(args[0], context);
     
     case 'log-mood':
-      return handleLogMood(args, context);
+      return await handleLogMood(args, context);
     
     case 'reflect':
-      return handleReflect(args.join(' '), context);
+      return await handleReflect(args.join(' '), context);
     
     case 'list-reflections':
       return handleListReflections(context);
@@ -107,22 +108,31 @@ Examples:
   return { output: helpText, success: true };
 }
 
-function handleAddTask(description: string, context: CommandContext): CommandResult {
+async function handleAddTask(description: string, context: CommandContext): Promise<CommandResult> {
   if (!description.trim()) {
     return { output: 'Error: Task description is required. Usage: add-task <description>', success: false };
   }
 
-  const newTask: Task = {
-    id: Date.now().toString(),
-    description: description.trim(),
-    completed: false,
-    priority: 'medium',
-    createdAt: new Date().toISOString(),
-  };
+  try {
+    const response = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description: description.trim(),
+        priority: 'medium'
+      })
+    });
 
-  context.setTasks(prev => [...prev, newTask]);
-  
-  return { output: `✅ Task added successfully: "${description}"`, success: true };
+    if (!response.ok) {
+      throw new Error('Failed to add task');
+    }
+
+    await context.refreshData();
+    return { output: `✅ Task added successfully: "${description}"`, success: true };
+  } catch (error) {
+    console.error('Error adding task:', error);
+    return { output: 'Error: Failed to add task. Please try again.', success: false };
+  }
 }
 
 function handleListTasks(context: CommandContext): CommandResult {
@@ -148,7 +158,7 @@ function handleListTasks(context: CommandContext): CommandResult {
   return { output, success: true };
 }
 
-function handleCompleteTask(taskId: string, context: CommandContext): CommandResult {
+async function handleCompleteTask(taskId: string, context: CommandContext): Promise<CommandResult> {
   const taskIndex = parseInt(taskId) - 1;
   
   if (isNaN(taskIndex) || taskIndex < 0 || taskIndex >= context.tasks.length) {
@@ -161,18 +171,29 @@ function handleCompleteTask(taskId: string, context: CommandContext): CommandRes
     return { output: `Task "${task.description}" is already completed.`, success: false };
   }
 
-  context.setTasks(prev => 
-    prev.map((t, i) => 
-      i === taskIndex 
-        ? { ...t, completed: true, completedAt: new Date().toISOString() }
-        : t
-    )
-  );
+  try {
+    const response = await fetch(`/api/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        completed: true,
+        completedAt: new Date()
+      })
+    });
 
-  return { output: `✅ Task completed: "${task.description}"`, success: true };
+    if (!response.ok) {
+      throw new Error('Failed to complete task');
+    }
+
+    await context.refreshData();
+    return { output: `✅ Task completed: "${task.description}"`, success: true };
+  } catch (error) {
+    console.error('Error completing task:', error);
+    return { output: 'Error: Failed to complete task. Please try again.', success: false };
+  }
 }
 
-function handleLogMood(args: string[], context: CommandContext): CommandResult {
+async function handleLogMood(args: string[], context: CommandContext): Promise<CommandResult> {
   if (args.length === 0) {
     return { 
       output: 'Error: Mood is required. Usage: log-mood <mood> [note]\nAvailable moods: happy, neutral, sad, excited, tired, stressed', 
@@ -190,39 +211,60 @@ function handleLogMood(args: string[], context: CommandContext): CommandResult {
     };
   }
 
-  const newMood: Mood = {
-    id: Date.now().toString(),
-    mood,
-    note: note || undefined,
-    timestamp: new Date().toISOString(),
-  };
+  try {
+    const response = await fetch('/api/moods', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mood,
+        note: note || null
+      })
+    });
 
-  context.setMoods(prev => [...prev, newMood]);
+    if (!response.ok) {
+      throw new Error('Failed to log mood');
+    }
 
-  let output = '✅ Mood logged successfully!\n\n';
-  output += `Mood: ${MOOD_EMOJIS[mood]} ${mood.charAt(0).toUpperCase() + mood.slice(1)}\n`;
-  if (note) {
-    output += `Note: "${note}"\n`;
+    await context.refreshData();
+
+    let output = '✅ Mood logged successfully!\n\n';
+    output += `Mood: ${MOOD_EMOJIS[mood]} ${mood.charAt(0).toUpperCase() + mood.slice(1)}\n`;
+    if (note) {
+      output += `Note: "${note}"\n`;
+    }
+    output += `Time: ${new Date().toLocaleString()}`;
+
+    return { output, success: true };
+  } catch (error) {
+    console.error('Error logging mood:', error);
+    return { output: 'Error: Failed to log mood. Please try again.', success: false };
   }
-  output += `Time: ${new Date().toLocaleString()}`;
-
-  return { output, success: true };
 }
 
-function handleReflect(content: string, context: CommandContext): CommandResult {
+async function handleReflect(content: string, context: CommandContext): Promise<CommandResult> {
   if (!content.trim()) {
     return { output: 'Error: Reflection content is required. Usage: reflect <content>', success: false };
   }
 
-  const newReflection: Reflection = {
-    id: Date.now().toString(),
-    content: content.trim(),
-    timestamp: new Date().toISOString(),
-  };
+  try {
+    const response = await fetch('/api/reflections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: content.trim()
+      })
+    });
 
-  context.setReflections(prev => [...prev, newReflection]);
+    if (!response.ok) {
+      throw new Error('Failed to save reflection');
+    }
 
-  return { output: `✅ Reflection saved successfully!\n\n"${content}"\n\nTime: ${new Date().toLocaleString()}`, success: true };
+    await context.refreshData();
+    return { output: `✅ Reflection saved successfully!\n\n"${content}"\n\nTime: ${new Date().toLocaleString()}`, success: true };
+  } catch (error) {
+    console.error('Error saving reflection:', error);
+    return { output: 'Error: Failed to save reflection. Please try again.', success: false };
+  }
 }
 
 function handleListReflections(context: CommandContext): CommandResult {
