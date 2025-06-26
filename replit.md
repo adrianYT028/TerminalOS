@@ -19,7 +19,8 @@ LifeOS is a terminal-based personal management system built as a full-stack web 
 - **Language**: TypeScript with ES modules
 - **Development**: tsx for development server
 - **Build**: esbuild for production bundling
-- **Storage**: In-memory storage with planned PostgreSQL integration
+- **Storage**: PostgreSQL database with Drizzle ORM
+- **Database**: Neon serverless PostgreSQL with connection pooling
 
 ### Key Design Decisions
 
@@ -27,7 +28,7 @@ LifeOS is a terminal-based personal management system built as a full-stack web 
 
 **Component-Based UI**: Uses shadcn/ui components for consistent design while maintaining the terminal aesthetic through custom CSS variables and terminal-specific styling.
 
-**Local Storage Persistence**: Currently uses browser localStorage for data persistence, making the app work offline and providing immediate responsiveness.
+**Database Persistence**: Uses PostgreSQL database with Drizzle ORM for reliable data persistence across sessions and devices.
 
 ## Key Components
 
@@ -52,9 +53,10 @@ LifeOS is a terminal-based personal management system built as a full-stack web 
 
 1. **User Input**: Commands entered through the terminal input component
 2. **Command Processing**: Commands parsed and validated through the command parser
-3. **State Updates**: Data modifications update React state and localStorage simultaneously
-4. **UI Updates**: Terminal history updates to show command results and system feedback
-5. **Persistence**: All data changes automatically saved to localStorage for session persistence
+3. **Database Operations**: Data modifications sent to PostgreSQL via REST API endpoints
+4. **State Updates**: UI state refreshed from database after successful operations
+5. **UI Updates**: Terminal history updates to show command results and system feedback
+6. **Persistence**: All data automatically persisted to PostgreSQL database
 
 ## External Dependencies
 
@@ -91,15 +93,16 @@ LifeOS is a terminal-based personal management system built as a full-stack web 
 - Deployment: Configured for Replit's autoscale deployment target
 
 **Database Strategy**:
-- Development: Uses in-memory storage for rapid prototyping
-- Production: Ready for PostgreSQL integration with Drizzle ORM
-- Migration system in place with drizzle-kit for schema management
+- Development: PostgreSQL database with Drizzle ORM for consistent development experience
+- Production: Neon serverless PostgreSQL with connection pooling
+- Schema management with drizzle-kit for database migrations
 
 ## Changelog
 
 ```
 Changelog:
-- June 26, 2025. Initial setup
+- June 26, 2025. Initial setup with React terminal interface and localStorage
+- June 26, 2025. Database integration: Migrated from localStorage to PostgreSQL with Drizzle ORM, added REST API endpoints, updated command system for async database operations
 ```
 
 ## User Preferences
