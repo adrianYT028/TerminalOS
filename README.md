@@ -39,24 +39,45 @@ A beautiful terminal-style personal productivity application built with React, T
    npm install
    ```
 
-3. **Set up your database:**
-   - Create a PostgreSQL database
+3. **Windows Users Only:**
+   Replace the original `package.json` with `package-windows.json`:
+   ```bash
+   # On Windows Command Prompt or PowerShell:
+   copy package-windows.json package.json
+   ```
+   ```bash
+   # On macOS/Linux:
+   cp package-windows.json package.json
+   ```
+
+4. **Set up your database:**
+   - Create a PostgreSQL database OR use a cloud provider like [Neon.tech](https://neon.tech) (free)
    - Copy `.env.example` to `.env` and add your database URL:
    ```
    DATABASE_URL="postgresql://username:password@localhost:5432/lifeos"
    ```
 
-4. **Initialize the database:**
+5. **Initialize the database:**
    ```bash
    npm run db:push
    ```
 
-5. **Start the application:**
+6. **Start the application:**
    ```bash
    npm run dev
    ```
 
-6. **Open your browser** to `http://localhost:5000`
+7. **Open your browser** to `http://localhost:5000`
+
+### Troubleshooting
+
+**Windows Error: 'NODE_ENV' is not recognized**
+- Make sure you replaced `package.json` with `package-windows.json` (step 3 above)
+- This adds cross-platform environment variable support
+
+**Database Connection Issues:**
+- Verify your `DATABASE_URL` in the `.env` file
+- For cloud databases like Neon, copy the connection string exactly as provided
 
 ## Project Structure
 
