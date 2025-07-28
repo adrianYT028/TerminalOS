@@ -1,64 +1,62 @@
 import { z } from "zod";
-import { pgTable, text, boolean, timestamp, uuid } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 
-// Tasks table
-export const tasks = pgTable('tasks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  description: text('description').notNull(),
-  completed: boolean('completed').default(false).notNull(),
-  priority: text('priority', { enum: ['high', 'medium', 'low'] }).default('medium').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  completedAt: timestamp('completed_at'),
+// Task schema
+export const taskSchema = z.object({
+  _id: z.string().optional(),
+  id: z.string().optional(),
+  description: z.string(),
+  completed: z.boolean().default(false),
+  priority: z.enum(['high', 'medium', 'low']).default('medium'),
+  createdAt: z.date().default(() => new Date()),
+  completedAt: z.date().optional(),
 });
 
-export const insertTaskSchema = createInsertSchema(tasks);
-export const taskSchema = createInsertSchema(tasks).required();
+export const insertTaskSchema = taskSchema.omit({ _id: true, id: true });
 
-export type Task = typeof tasks.$inferSelect;
-export type InsertTask = typeof tasks.$inferInsert;
+export type Task = z.infer<typeof taskSchema>;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
 
-// Moods table
-export const moods = pgTable('moods', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  mood: text('mood', { enum: ['happy', 'neutral', 'sad', 'excited', 'tired', 'stressed'] }).notNull(),
-  note: text('note'),
-  timestamp: timestamp('timestamp').defaultNow().notNull(),
+// Mood schema
+export const moodSchema = z.object({
+  _id: z.string().optional(),
+  id: z.string().optional(),
+  mood: z.enum(['happy', 'neutral', 'sad', 'excited', 'tired', 'stressed']),
+  note: z.string().optional(),
+  timestamp: z.date().default(() => new Date()),
 });
 
-export const insertMoodSchema = createInsertSchema(moods);
-export const moodSchema = createInsertSchema(moods).required();
+export const insertMoodSchema = moodSchema.omit({ _id: true, id: true });
 
-export type Mood = typeof moods.$inferSelect;
-export type InsertMood = typeof moods.$inferInsert;
+export type Mood = z.infer<typeof moodSchema>;
+export type InsertMood = z.infer<typeof insertMoodSchema>;
 
-// Reflections table
-export const reflections = pgTable('reflections', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  title: text('title'),
-  content: text('content').notNull(),
-  timestamp: timestamp('timestamp').defaultNow().notNull(),
+// Reflection schema
+export const reflectionSchema = z.object({
+  _id: z.string().optional(),
+  id: z.string().optional(),
+  title: z.string().optional(),
+  content: z.string(),
+  timestamp: z.date().default(() => new Date()),
 });
 
-export const insertReflectionSchema = createInsertSchema(reflections);
-export const reflectionSchema = createInsertSchema(reflections).required();
+export const insertReflectionSchema = reflectionSchema.omit({ _id: true, id: true });
 
-export type Reflection = typeof reflections.$inferSelect;
-export type InsertReflection = typeof reflections.$inferInsert;
+export type Reflection = z.infer<typeof reflectionSchema>;
+export type InsertReflection = z.infer<typeof insertReflectionSchema>;
 
-// Command history table
-export const commandHistory = pgTable('command_history', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  command: text('command').notNull(),
-  timestamp: timestamp('timestamp').defaultNow().notNull(),
-  output: text('output'),
+// Command history schema
+export const commandHistorySchema = z.object({
+  _id: z.string().optional(),
+  id: z.string().optional(),
+  command: z.string(),
+  timestamp: z.date().default(() => new Date()),
+  output: z.string().optional(),
 });
 
-export const insertCommandHistorySchema = createInsertSchema(commandHistory);
-export const commandHistorySchema = createInsertSchema(commandHistory).required();
+export const insertCommandHistorySchema = commandHistorySchema.omit({ _id: true, id: true });
 
-export type CommandHistory = typeof commandHistory.$inferSelect;
-export type InsertCommandHistory = typeof commandHistory.$inferInsert;
+export type CommandHistory = z.infer<typeof commandHistorySchema>;
+export type InsertCommandHistory = z.infer<typeof insertCommandHistorySchema>;
 
 // System stats (keeping as Zod schema since it's computed, not stored)
 export const systemStatsSchema = z.object({
