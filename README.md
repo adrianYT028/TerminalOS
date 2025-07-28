@@ -163,7 +163,7 @@ This is a personal productivity tool, but feel free to customize it for your nee
 
 ## License
 
-MIT License - feel free to use this for personal or educational purposes.
+- feel free to use this for personal or educational purposes.
 
 ## Support
 
