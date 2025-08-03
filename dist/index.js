@@ -416,7 +416,7 @@ app.use((req, res, next) => {
   });
   next();
 });
-(async () => {
+async function initializeApp() {
   await connectDB();
   const server = await registerRoutes(app);
   app.use((err, _req, res, _next) => {
@@ -430,12 +430,29 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
   }
-  const port = process.env.PORT || 5e3;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+  return app;
+}
+var appInstance = null;
+async function getApp() {
+  if (!appInstance) {
+    appInstance = await initializeApp();
+  }
+  return appInstance;
+}
+if (!process.env.VERCEL) {
+  (async () => {
+    await initializeApp();
+    const port = process.env.PORT || 5e3;
+    const server = await registerRoutes(app);
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  })();
+}
+export {
+  getApp as default
+};

@@ -51,7 +51,8 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+// Function to initialize the app for serverless
+async function initializeApp() {
   // Connect to MongoDB first
   await connectDB();
   
@@ -74,14 +75,34 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the correct port
-  // Azure uses PORT environment variable, fallback to 5000 for local
-  const port = process.env.PORT || 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+  return app;
+}
+
+// Export for serverless environments
+let appInstance: any = null;
+
+export default async function getApp() {
+  if (!appInstance) {
+    appInstance = await initializeApp();
+  }
+  return appInstance;
+}
+
+// For traditional server environments (non-Vercel)
+if (!process.env.VERCEL) {
+  (async () => {
+    await initializeApp();
+    
+    // ALWAYS serve the app on the correct port
+    // Azure uses PORT environment variable, fallback to 5000 for local
+    const port = process.env.PORT || 5000;
+    const server = await registerRoutes(app);
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  })();
+}
