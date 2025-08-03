@@ -16,8 +16,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Import the Express app getter
-    const { default: getApp } = await import('./dist/index.js');
+    // Import the Express app getter directly from TypeScript source
+    const { default: getApp } = await import('./server/index.ts');
     
     // Get the initialized Express app
     const app = await getApp();
